@@ -23,14 +23,18 @@ using namespace cv;
 
 // 获取相机参数
 Matrix<double, 3, 3> ParametersCamera(Matrix<double, 3, 3> &left_intrinsic, Matrix<double, 3, 3> &right_intrinsic,
-                      Matrix<double, 3, 3> &intrinsic, Matrix<double, 3, 3> &leftToright,
-                      Matrix<double, 3, 1> &translation_vector, Matrix<double, 1, 6> &left_radial_dis,
-                      Matrix<double, 1, 6> &right_radial_dis, Matrix<double, 1, 2> &left_tangential_dis,
-                      Matrix<double, 1, 2> &right_tangential_dis);
+                                      Matrix<double, 3, 3> &intrinsic, Matrix<double, 3, 3> &leftToright,
+                                      Matrix<double, 3, 1> &translation_vector, Matrix<double, 1, 6> &left_radial_dis,
+                                      Matrix<double, 1, 6> &right_radial_dis, Matrix<double, 1, 2> &left_tangential_dis,
+                                      Matrix<double, 1, 2> &right_tangential_dis);
 
 // 去畸变类
 Matrix<double, 3, 1>
 undistortion(Matrix<double, 3, 1> point, Matrix<double, 1, 6> radial_dis, Matrix<double, 1, 2> tangential_dis);
+
+Matrix<double, 3, 1>
+undistortionPoints(Matrix<double, 3, 1> point, Matrix<double, 3, 3> intrinsic, Matrix<double, 1, 6> radial_dis,
+                   Matrix<double, 1, 2> tangential_dis,Matrix<double, 3, 3> R_new);
 
 // 双线性插值法
 vector<int> BilinearInterpolation(Matrix<double, 3, 1> point, cv::Mat Rimage);

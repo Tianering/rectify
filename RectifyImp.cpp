@@ -76,13 +76,14 @@ undistortion(Matrix<double, 3, 1> point, Matrix<double, 1, 6> radial_dis, Matrix
 
 Matrix<double, 3, 1>
 undistortionPoints(Matrix<double, 3, 1> point, Matrix<double, 3, 3> intrinsic, Matrix<double, 1, 6> radial_dis,
-                   Matrix<double, 1, 2> tangential_dis) {
+                   Matrix<double, 1, 2> tangential_dis,Matrix<double, 3, 3> R_new) {
     // 根据畸变像素坐标以及投影矩阵反解畸变投影坐标
     double x = point(0), y = point(1);
+    cout << x << "," << y << endl;
     x = x * intrinsic(0, 0) + intrinsic(0, 2);
     y = y * intrinsic(1, 1) + intrinsic(1, 2);
+    cout << x << "," << y << endl;
     // 根据畸变投影坐标以及畸变参数反解标准投影坐标
-    // 通过TermCriteria 进行循环控制（五次）
     for (int j = 0; j < 5; j++) {
         double r2 = x * x + y * y;
         double formula = (1 + radial_dis(3) * r2 + radial_dis(4) * r2 * r2 + radial_dis(5) * r2 * r2 * r2) /
@@ -93,7 +94,15 @@ undistortionPoints(Matrix<double, 3, 1> point, Matrix<double, 3, 3> intrinsic, M
         y = (y - deltaY) * formula;
     }
 
-    // 使用拓展投影矩阵计算无畸变的像素坐标
+    double xx = R_new(0,0)*x + R_new(0,1)*y + R_new(0,2);
+    double yy = R_new(1,0)*x + R_new(1,1)*y + R_new(1,2);
+    double ww = 1./(R_new(2,0)*x + R_new(2,1)*y + R_new(2,2));
+    x = xx*ww;
+    y = yy*ww;
+    point(0) = x;
+    point(1) = y;
+    return point;
+
 
 
 }

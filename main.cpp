@@ -2,7 +2,7 @@
 
 Matrix<Matrix<double, 3, 1>, 1, 4>
 newPointsUndistort(Matrix<double, 3, 3> &intrinsic, cv::Mat &image, Matrix<double, 1, 6> radial_dis,
-                   Matrix<double, 1, 2> tangential_dis) {
+                   Matrix<double, 1, 2> tangential_dis,Matrix<double, 3, 3> R_new) {
     double h = image.cols, w = image.rows;
     Matrix<Matrix<double, 3, 1>, 1, 4> points;
     points << Matrix<double, 3, 1>(0, 0, 1),
@@ -13,6 +13,9 @@ newPointsUndistort(Matrix<double, 3, 3> &intrinsic, cv::Mat &image, Matrix<doubl
     points[1] = undistortion(points[1], radial_dis, tangential_dis);
     points[2] = undistortion(points[2], radial_dis, tangential_dis);
     points[3] = undistortion(points[3], radial_dis, tangential_dis);
+    cout << points[1] << endl;
+    points[1] = undistortionPoints(points[1], intrinsic, radial_dis, tangential_dis,R_new);
+    cout << points[1] << endl;
     // 倾斜平面矩阵*point点
     // 经过判断对x，y点进行放缩
     // xd*fx+cx
@@ -35,7 +38,7 @@ int main() {
     cv::Mat dst1 = Mat(right_img.rows, right_img.cols, CV_8UC3, Scalar(0));
     cv::Mat res = Mat(left_img.rows, left_img.cols * 2, CV_8UC3, Scalar(0));
     Matrix<Matrix<double, 3, 1>, 1, 4> points = newPointsUndistort(intrinsic, left_img, left_radial_dis,
-                                                                   left_tangential_dis);
+                                                                   left_tangential_dis,R_new);
     // 获取相机参数信息并取得新的旋转矩阵
     R_new = ParametersCamera(left_intrinsic, right_intrinsic, intrinsic, leftToright, translation_vector,
                              left_radial_dis,
