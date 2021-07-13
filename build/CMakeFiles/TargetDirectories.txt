@@ -1,0 +1,3 @@
+/home/shanyi/WorkSpace/rectify/build/CMakeFiles/rebuild_cache.dir
+/home/shanyi/WorkSpace/rectify/build/CMakeFiles/edit_cache.dir
+/home/shanyi/WorkSpace/rectify/build/CMakeFiles/rectify.dir
