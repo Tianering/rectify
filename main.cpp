@@ -1,4 +1,5 @@
 #include "rectify.h"
+#include "stringSpilt.h"
 
 int main() {
     double start = omp_get_wtime();
@@ -36,12 +37,22 @@ int main() {
     double inter = omp_get_wtime();
     cout << "inter:" << inter - start << "s" << endl;
 
-    remapRectify(left_img, dst, res, mapx_l, mapy_l, 0);
-    remapRectify(right_img, dst1, res, mapx_r, mapy_r, -1);
+    ifstream myfile("../images/images.txt");
+    string temp;
+    while (getline(myfile, temp)) //按行读取字符串
+    {
+        vector<string> s1 = stringSplit(temp,",");
+        left_img = imread("../images/"+s1[0]);
+        right_img = imread("../images/"+ s1[1]);
+        remapRectify(left_img, dst, res, mapx_l, mapy_l, 0);
+        remapRectify(right_img, dst1, res, mapx_r, mapy_r, -1);
 
-    imwrite("../images/left_2.png", dst);
-    imwrite("../images/right_2.png", dst1);
-    imwrite("../images/result_2.png", res);
+        vector<string> s2 = stringSplit(s1[0],"_");
+        imwrite("../images/result"+s2[1], res);
+
+    }
+    myfile.close();
+
     double end = omp_get_wtime();
     cout << "time:" << end - start << "s" << endl;
 }

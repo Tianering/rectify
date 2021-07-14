@@ -16,5 +16,5 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
-add_executable(rectify main.cpp rectify.h RectifyImp.cpp test.cpp)
+add_executable(rectify main.cpp rectify.h RectifyImp.cpp test.cpp stringSpilt.h stringSpiltImp.cpp)
 target_link_libraries( rectify ${OpenCV_LIBS})
