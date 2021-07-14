@@ -1,0 +1,4 @@
+L_2.bmp,R_2.bmp
+L_4.bmp,R_4.bmp
+L_8.bmp,R_8.bmp
+L_15.bmp,R_15.bmp
