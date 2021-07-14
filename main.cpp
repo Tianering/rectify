@@ -2,8 +2,7 @@
 
 int main() {
     double start = omp_get_wtime();
-    Matrix<double, 3, 3> left_intrinsic, right_intrinsic, intrinsic, R_new;
-    Matrix<double, 3, 3> leftToright;
+    Matrix<double, 3, 3> left_intrinsic, right_intrinsic, intrinsic, R_new, leftToright;
     Matrix<double, 3, 1> translation_vector;
     Matrix<double, 1, 6> left_radial_dis, right_radial_dis;
     Matrix<double, 1, 2> left_tangential_dis, right_tangential_dis;
@@ -25,8 +24,7 @@ int main() {
 //-------------------------------映射表形式
     cv::Mat mapx_l = Mat(left_img.rows, left_img.cols, CV_64F, Scalar(0));
     cv::Mat mapy_l = Mat(left_img.rows, left_img.cols, CV_64F, Scalar(0));
-    int x,y;
-    double *mpx = mapx_l.ptr<double>(1079);
+
     mapRectify(left_img, intrinsic, left_intrinsic, left_radial_dis, left_tangential_dis, leftToright, R_new, 0, mapx_l,
                mapy_l);
 
@@ -35,8 +33,9 @@ int main() {
     mapRectify(right_img, intrinsic, right_intrinsic, right_radial_dis, right_tangential_dis, leftToright, R_new, 0,
                mapx_r, mapy_r);
 
-    cout << mpx[1919]<<endl;
-    cout << mapy_l.ptr<double>(1079) [1919]<<endl;
+    double inter = omp_get_wtime();
+    cout << "inter:" << inter - start << "s" << endl;
+
     remapRectify(left_img, dst, res, mapx_l, mapy_l, 0);
     remapRectify(right_img, dst1, res, mapx_r, mapy_r, -1);
 

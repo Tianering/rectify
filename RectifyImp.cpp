@@ -146,8 +146,10 @@ mapRectify(Mat &image, Matrix<double, 3, 3> intrinsic, Matrix<double, 3, 3> ones
     else
         R_new = oneself_intrinsic * R_new.inverse();
 #pragma omp parallel for
-    for (int x = 0; x < image.cols; x++) {
-        for (int y = 0; y < image.rows; y++) {
+    for (int y = 0; y < image.rows; y++) {
+        double *mpx = mapx.ptr<double>(y);
+        double *mpy = mapy.ptr<double>(y);
+        for (int x = 0; x < image.cols; x++) {
             Matrix<double, 3, 1> img_pixel, img_image, img_rotating, img_undistortion;
             img_pixel << x, y, 1;
             img_image = intrinsic.inverse() * img_pixel;
@@ -155,25 +157,27 @@ mapRectify(Mat &image, Matrix<double, 3, 3> intrinsic, Matrix<double, 3, 3> ones
             img_rotating = R_new * img_undistortion;
             img_rotating(0) = img_rotating(0) / img_rotating(2);
             img_rotating(1) = img_rotating(1) / img_rotating(2);
-            mapx.at<double>(y, x) = img_rotating(0);
-            mapy.at<double>(y, x) = img_rotating(1);
+            mpx[x] = img_rotating(0);
+            mpy[x] = img_rotating(1);
         }
     }
 }
 
 void remapRectify(Mat &image, Mat &dst, Mat &res, Mat mapx, Mat mapy, int lorr) {
 #pragma omp parallel for
-    for (int u = 0; u < image.cols; u++) {
-        for (int v = 0; v < image.rows; v++) {
+    for (int y = 0; y < image.rows; y++) {
+        double *mpx = mapx.ptr<double>(y);
+        double *mpy = mapy.ptr<double>(y);
+        for (int x = 0; x < image.cols; x++) {
             Matrix<double, 3, 1> point;
-            point << mapx.at<double>(v, u), mapy.at<double>(v, u), 1;
+            point << mpx[x], mpy[y], 1;
             vector<int> bgr = BilinearInterpolation(point, image);
             // 三通道图赋值
-            ColorChart(dst, u, v, bgr);
+            ColorChart(dst, x, y, bgr);
             if (lorr == 0)
-                ColorChart(res, u, v, bgr);
+                ColorChart(res, x, y, bgr);
             else if (lorr == -1)
-                ColorChart(res, image.cols + u, v, bgr);
+                ColorChart(res, image.cols + x, y, bgr);
         }
     }
 }
