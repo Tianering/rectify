@@ -32,22 +32,20 @@ Matrix<double, 3, 3> ParametersCamera(Matrix<double, 3, 3> &left_intrinsic, Matr
 Matrix<double, 3, 1>
 undistortion(Matrix<double, 3, 1> point, Matrix<double, 1, 6> radial_dis, Matrix<double, 1, 2> tangential_dis);
 
-Matrix<double, 3, 1>
-undistortionPoints(Matrix<double, 3, 1> point, Matrix<double, 3, 3> intrinsic, Matrix<double, 1, 6> radial_dis,
-                   Matrix<double, 1, 2> tangential_dis,Matrix<double, 3, 3> R_new);
-
 // 双线性插值法
 vector<int> BilinearInterpolation(Matrix<double, 3, 1> point, cv::Mat Rimage);
 
-//
-Matrix<double, 3, 1>
-ImgRotating(Matrix<double, 3, 1> point_pre, Matrix<double, 3, 3> intrinsic, Matrix<double, 3, 3> matrix_rot,
-            Matrix<double, 3, 3> R_new, int lorr);
-
 // 多通道图像赋值
-void ColorChart(Mat image, int x, int y, vector<int> point);
+void ColorChart(Mat &image, int x, int y, vector<int> point);
 
 // 极线校正
 Mat myPolarRectify(Mat &image, Mat &res, Matrix<double, 3, 3> oneself_intrinsic, Matrix<double, 3, 3> intrinsic,
                    Matrix<double, 1, 6> radial_dis, Matrix<double, 1, 2> tangential_dis,
                    Matrix<double, 3, 3> leftToright, Matrix<double, 3, 3> R_new, int lorr);
+
+void
+mapRectify(Mat &image, Matrix<double, 3, 3> intrinsic, Matrix<double, 3, 3> oneself_intrinsic,
+           Matrix<double, 1, 6> radial_dis, Matrix<double, 1, 2> tangential_dis, Matrix<double, 3, 3> leftToright,
+           Matrix<double, 3, 3> R_new, int lorr, Mat &mapx, Mat &mapy);
+
+void remapRectify(Mat &image, Mat &dst, Mat &res, Mat mapx, Mat mapy, int lorr);

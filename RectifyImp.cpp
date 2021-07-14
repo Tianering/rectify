@@ -74,40 +74,6 @@ undistortion(Matrix<double, 3, 1> point, Matrix<double, 1, 6> radial_dis, Matrix
     // 得到倾斜平面的投影矩阵
 }
 
-Matrix<double, 3, 1>
-undistortionPoints(Matrix<double, 3, 1> point, Matrix<double, 3, 3> intrinsic, Matrix<double, 1, 6> radial_dis,
-                   Matrix<double, 1, 2> tangential_dis,Matrix<double, 3, 3> R_new) {
-    // 根据畸变像素坐标以及投影矩阵反解畸变投影坐标
-    double x = point(0), y = point(1);
-    cout << x << "," << y << endl;
-    x = x * intrinsic(0, 0) + intrinsic(0, 2);
-    y = y * intrinsic(1, 1) + intrinsic(1, 2);
-    cout << x << "," << y << endl;
-    // 根据畸变投影坐标以及畸变参数反解标准投影坐标
-    for (int j = 0; j < 5; j++) {
-        double r2 = x * x + y * y;
-        double formula = (1 + radial_dis(3) * r2 + radial_dis(4) * r2 * r2 + radial_dis(5) * r2 * r2 * r2) /
-                         (radial_dis(0) * r2 + radial_dis(1) * r2 * r2 + radial_dis(2) * r2 * r2 * r2);
-        double deltaX = 2 * tangential_dis(0) * x * y + tangential_dis(1) * (r2 + 2 * x * x);
-        double deltaY = tangential_dis(0) * (r2 + 2 * y * y) + 2 * tangential_dis(1) * x * y;
-        x = (x - deltaX) * formula;
-        y = (y - deltaY) * formula;
-    }
-
-    double xx = R_new(0,0)*x + R_new(0,1)*y + R_new(0,2);
-    double yy = R_new(1,0)*x + R_new(1,1)*y + R_new(1,2);
-    double ww = 1./(R_new(2,0)*x + R_new(2,1)*y + R_new(2,2));
-    x = xx*ww;
-    y = yy*ww;
-    point(0) = x;
-    point(1) = y;
-    return point;
-
-
-
-}
-
-
 // 双线性插值法
 vector<int> BilinearInterpolation(Matrix<double, 3, 1> point, cv::Mat image) {
     //cout << point << endl;
@@ -117,9 +83,8 @@ vector<int> BilinearInterpolation(Matrix<double, 3, 1> point, cv::Mat image) {
     bgr1[2] = 0;
     double y = point(0);
     double x = point(1);
-    if (y > 1920 || y < 0 || x > 1080 || x < 0) {
+    if (y > 1920 || y < 0 || x > 1080 || x < 0)
         return bgr1;
-    }
     int x1 = floor(x);
     int x2 = x1 + 1;
     int y1 = floor(y);
@@ -154,20 +119,14 @@ vector<int> BilinearInterpolation(Matrix<double, 3, 1> point, cv::Mat image) {
     double G = ((y - y1) / (y2 - y1)) * G1 + ((y2 - y) / (y2 - y1)) * G2;
     double B = ((y - y1) / (y2 - y1)) * B1 + ((y2 - y) / (y2 - y1)) * B2;
 
-    if (y > 1920 || y < 0 || x > 1080 || x < 0) {
-        R = 0;
-        G = 0;
-        B = 0;
-    }
     bgr1[0] = B;
     bgr1[1] = G;
     bgr1[2] = R;
-    //cout << bgr1[0] << endl;
     return bgr1;
 }
 
 // 多通道图像赋值
-void ColorChart(Mat image, int x, int y, vector<int> point) {
+void ColorChart(Mat &image, int x, int y, vector<int> point) {
     if (y % 50 == 0) {
         point[0] = 255;
         point[1] = 255;
@@ -178,17 +137,46 @@ void ColorChart(Mat image, int x, int y, vector<int> point) {
     image.at<cv::Vec3b>(y, x)[2] = point[2];
 }
 
-//
-Matrix<double, 3, 1>
-ImgRotating(Matrix<double, 3, 1> point, Matrix<double, 3, 3> intrinsic, Matrix<double, 3, 3> leftToright,
-            Matrix<double, 3, 3> R_new, int lorr) {
+void
+mapRectify(Mat &image, Matrix<double, 3, 3> intrinsic, Matrix<double, 3, 3> oneself_intrinsic,
+           Matrix<double, 1, 6> radial_dis, Matrix<double, 1, 2> tangential_dis, Matrix<double, 3, 3> leftToright,
+           Matrix<double, 3, 3> R_new, int lorr, Mat &mapx, Mat &mapy) {
     if (lorr == 0)
-        point = intrinsic * leftToright * R_new.inverse() * point;
+        R_new = oneself_intrinsic * leftToright * R_new.inverse();
     else
-        point = intrinsic * R_new.inverse() * point;
-    return point;
+        R_new = oneself_intrinsic * R_new.inverse();
+#pragma omp parallel for
+    for (int x = 0; x < image.cols; x++) {
+        for (int y = 0; y < image.rows; y++) {
+            Matrix<double, 3, 1> img_pixel, img_image, img_rotating, img_undistortion;
+            img_pixel << x, y, 1;
+            img_image = intrinsic.inverse() * img_pixel;
+            img_undistortion = undistortion(img_image, radial_dis, tangential_dis);
+            img_rotating = R_new * img_undistortion;
+            img_rotating(0) = img_rotating(0) / img_rotating(2);
+            img_rotating(1) = img_rotating(1) / img_rotating(2);
+            mapx.at<double>(y, x) = img_rotating(0);
+            mapy.at<double>(y, x) = img_rotating(1);
+        }
+    }
 }
 
+void remapRectify(Mat &image, Mat &dst, Mat &res, Mat mapx, Mat mapy, int lorr) {
+#pragma omp parallel for
+    for (int u = 0; u < image.cols; u++) {
+        for (int v = 0; v < image.rows; v++) {
+            Matrix<double, 3, 1> point;
+            point << mapx.at<double>(v, u), mapy.at<double>(v, u), 1;
+            vector<int> bgr = BilinearInterpolation(point, image);
+            // 三通道图赋值
+            ColorChart(dst, u, v, bgr);
+            if (lorr == 0)
+                ColorChart(res, u, v, bgr);
+            else if (lorr == -1)
+                ColorChart(res, image.cols + u, v, bgr);
+        }
+    }
+}
 
 // 极线校正
 Mat myPolarRectify(Mat &image, Mat &res, Matrix<double, 3, 3> oneself_intrinsic, Matrix<double, 3, 3> intrinsic,
@@ -199,7 +187,7 @@ Mat myPolarRectify(Mat &image, Mat &res, Matrix<double, 3, 3> oneself_intrinsic,
         R_new = oneself_intrinsic * leftToright * R_new.inverse();
     else
         R_new = oneself_intrinsic * R_new.inverse();
-//    omp_set_num_threads(4);
+    cout << "left11" << endl;
     for (int x = 0; x < image.cols; x++) {
 #pragma omp parallel for
         for (int y = 0; y < image.rows; y++) {
@@ -212,7 +200,6 @@ Mat myPolarRectify(Mat &image, Mat &res, Matrix<double, 3, 3> oneself_intrinsic,
             img_undistortion = undistortion(img_image, radial_dis, tangential_dis);
             // 旋转坐标系
             img_rotating = R_new * img_undistortion;
-            //img_rotating = ImgRotating(img_undistortion, oneself_intrinsic, leftToright, R_new, lorr);
             //坐标归一化
             img_rotating(0) = img_rotating(0) / img_rotating(2);
             img_rotating(1) = img_rotating(1) / img_rotating(2);
@@ -226,7 +213,5 @@ Mat myPolarRectify(Mat &image, Mat &res, Matrix<double, 3, 3> oneself_intrinsic,
                 ColorChart(res, image.cols + x, y, bgr);
         }
     }
-    return dst;
+    return image;
 }
-
-// 新*r*r = 旧

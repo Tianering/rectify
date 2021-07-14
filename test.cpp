@@ -66,3 +66,42 @@
 //                        0, new_f[1], new_c[1],
 //                        0, 0, 1)) << endl;
 //}
+
+//// 极线校正
+//Mat myPolarRectify(Mat &image, Mat &res, Matrix<double, 3, 3> oneself_intrinsic, Matrix<double, 3, 3> intrinsic,
+//                   Matrix<double, 1, 6> radial_dis, Matrix<double, 1, 2> tangential_dis,
+//                   Matrix<double, 3, 3> leftToright, Matrix<double, 3, 3> R_new, int lorr) {
+//    cv::Mat dst = Mat(image.rows, image.cols, CV_8UC3, Scalar(0));
+//    if (lorr == 0)
+//        R_new = oneself_intrinsic * leftToright * R_new.inverse();
+//    else
+//        R_new = oneself_intrinsic * R_new.inverse();
+//    cout << "left11" << endl;
+//    for (int x = 0; x < image.cols; x++) {
+//#pragma omp parallel for
+//        for (int y = 0; y < image.rows; y++) {
+//            Matrix<double, 3, 1> img_pixel, img_image, img_rotating, img_undistortion;
+//            img_pixel << x, y, 1;
+//            //cout << x << "," << y  << endl;
+//            // 像素坐标系转向相机坐标系
+//            img_image = intrinsic.inverse() * img_pixel;
+//            // 去畸变（图加畸变）
+//            img_undistortion = undistortion(img_image, radial_dis, tangential_dis);
+//            // 旋转坐标系
+//            img_rotating = R_new * img_undistortion;
+//            //img_rotating = ImgRotating(img_undistortion, oneself_intrinsic, leftToright, R_new, lorr);
+//            //坐标归一化
+//            img_rotating(0) = img_rotating(0) / img_rotating(2);
+//            img_rotating(1) = img_rotating(1) / img_rotating(2);
+//            // 通过插值法获取像素值
+//            vector<int> bgr = BilinearInterpolation(img_rotating, image);
+//            // 三通道图赋值
+//            ColorChart(dst, x, y, bgr);
+//            if (lorr == 0)
+//                ColorChart(res, x, y, bgr);
+//            else if (lorr == -1)
+//                ColorChart(res, image.cols + x, y, bgr);
+//        }
+//    }
+//    return image;
+//}

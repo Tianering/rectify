@@ -1,30 +1,5 @@
 #include "rectify.h"
 
-Matrix<Matrix<double, 3, 1>, 1, 4>
-newPointsUndistort(Matrix<double, 3, 3> &intrinsic, cv::Mat &image, Matrix<double, 1, 6> radial_dis,
-                   Matrix<double, 1, 2> tangential_dis,Matrix<double, 3, 3> R_new) {
-    double h = image.cols, w = image.rows;
-    Matrix<Matrix<double, 3, 1>, 1, 4> points;
-    points << Matrix<double, 3, 1>(0, 0, 1),
-            Matrix<double, 3, 1>(0, w, 1),
-            Matrix<double, 3, 1>(h, w, 1),
-            Matrix<double, 3, 1>(h, 0, 1);
-    points[0] = undistortion(points[0], radial_dis, tangential_dis);
-    points[1] = undistortion(points[1], radial_dis, tangential_dis);
-    points[2] = undistortion(points[2], radial_dis, tangential_dis);
-    points[3] = undistortion(points[3], radial_dis, tangential_dis);
-    cout << points[1] << endl;
-    points[1] = undistortionPoints(points[1], intrinsic, radial_dis, tangential_dis,R_new);
-    cout << points[1] << endl;
-    // 倾斜平面矩阵*point点
-    // 经过判断对x，y点进行放缩
-    // xd*fx+cx
-    // 得到倾斜平面的投影矩阵
-
-    return points;
-}
-
-
 int main() {
     double start = omp_get_wtime();
     Matrix<double, 3, 3> left_intrinsic, right_intrinsic, intrinsic, R_new;
@@ -37,18 +12,34 @@ int main() {
     cv::Mat dst = Mat(left_img.rows, left_img.cols, CV_8UC3, Scalar(0));
     cv::Mat dst1 = Mat(right_img.rows, right_img.cols, CV_8UC3, Scalar(0));
     cv::Mat res = Mat(left_img.rows, left_img.cols * 2, CV_8UC3, Scalar(0));
-    Matrix<Matrix<double, 3, 1>, 1, 4> points = newPointsUndistort(intrinsic, left_img, left_radial_dis,
-                                                                   left_tangential_dis,R_new);
     // 获取相机参数信息并取得新的旋转矩阵
     R_new = ParametersCamera(left_intrinsic, right_intrinsic, intrinsic, leftToright, translation_vector,
                              left_radial_dis,
                              right_radial_dis, left_tangential_dis, right_tangential_dis);
-    // 左相机处理
-    dst = myPolarRectify(left_img, res, left_intrinsic, intrinsic, left_radial_dis, left_tangential_dis, leftToright,
-                         R_new, 0);
-    // 右相机处理
-    dst1 = myPolarRectify(right_img, res, right_intrinsic, intrinsic, right_radial_dis, right_tangential_dis,
-                          leftToright, R_new, -1);
+//    // 左相机处理
+//    dst = myPolarRectify(left_img, res, left_intrinsic, intrinsic, left_radial_dis, left_tangential_dis, leftToright,
+//                         R_new, 0);
+//    // 右相机处理
+//    dst1 = myPolarRectify(right_img, res, right_intrinsic, intrinsic, right_radial_dis, right_tangential_dis,
+//                          leftToright, R_new, -1);
+//-------------------------------映射表形式
+    cv::Mat mapx_l = Mat(left_img.rows, left_img.cols, CV_64F, Scalar(0));
+    cv::Mat mapy_l = Mat(left_img.rows, left_img.cols, CV_64F, Scalar(0));
+    int x,y;
+    double *mpx = mapx_l.ptr<double>(1079);
+    mapRectify(left_img, intrinsic, left_intrinsic, left_radial_dis, left_tangential_dis, leftToright, R_new, 0, mapx_l,
+               mapy_l);
+
+    cv::Mat mapx_r = Mat(right_img.rows, right_img.cols, CV_64F, Scalar(0));
+    cv::Mat mapy_r = Mat(right_img.rows, right_img.cols, CV_64F, Scalar(0));
+    mapRectify(right_img, intrinsic, right_intrinsic, right_radial_dis, right_tangential_dis, leftToright, R_new, 0,
+               mapx_r, mapy_r);
+
+    cout << mpx[1919]<<endl;
+    cout << mapy_l.ptr<double>(1079) [1919]<<endl;
+    remapRectify(left_img, dst, res, mapx_l, mapy_l, 0);
+    remapRectify(right_img, dst1, res, mapx_r, mapy_r, -1);
+
     imwrite("../images/left_2.png", dst);
     imwrite("../images/right_2.png", dst1);
     imwrite("../images/result_2.png", res);
